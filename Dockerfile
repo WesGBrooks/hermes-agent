@@ -113,5 +113,7 @@ RUN uv pip install --no-cache-dir --no-deps -e "."
 ENV HERMES_WEB_DIST=/opt/hermes/hermes_cli/web_dist
 ENV HERMES_HOME=/opt/data
 ENV PATH="/opt/data/.local/bin:${PATH}"
-VOLUME [ "/opt/data" ]
+# Railway rejects Dockerfile VOLUME declarations. Attach a Railway Volume at
+# /opt/data instead so Hermes config, sessions, skills, and logs persist.
+CMD ["gateway"]
 ENTRYPOINT [ "/usr/bin/tini", "-g", "--", "/opt/hermes/docker/entrypoint.sh" ]
