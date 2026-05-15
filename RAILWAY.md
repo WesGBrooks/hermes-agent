@@ -54,13 +54,21 @@ always-on messaging gateway. The entrypoint bootstraps `/opt/data` with
 `railway.json` only configures build and deploy; Railway config-as-code does not
 embed secret values. Put API keys and tokens in **Railway → Service → Variables**.
 
-- **Checklist:** `railway.env.template` lists Hermes credential-style variable
-  *names* (LLM keys, messaging tokens, tool APIs, webhooks, Langfuse, bootstrap
-  JSON, etc.). It is aligned with `OPTIONAL_ENV_VARS` (`password: true`),
-  `_EXTRA_ENV_KEYS`, and `website/docs/reference/environment-variables.md`. Open
-  it, copy the lines you need into the Railway **RAW** variables editor, and set
-  values in the UI—never commit real secrets. WhatsApp pairing still lives in
-  the volume under `HERMES_HOME` (session files), not in this list.
+- **Checklist:** `railway.env.template` is **auto-generated**. It lists Hermes
+  credential-style variable *names* (LLM keys, messaging tokens, tool APIs,
+  webhooks, Langfuse, bootstrap JSON, etc.). It is derived from
+  `OPTIONAL_ENV_VARS` (`password: true`), `_EXTRA_ENV_KEYS`, and
+  `website/docs/reference/environment-variables.md`. Open it, copy the lines you
+  need into the Railway **RAW** variables editor, and set values in the
+  UI—never commit real secrets. WhatsApp pairing still lives in the volume under
+  `HERMES_HOME` (session files), not in this list.
+- **Regenerate:** From the repo root, run
+  `python scripts/generate_railway_env_template.py` after changing
+  `hermes_cli/config.py` env metadata, the environment-variables reference doc, or
+  the generator script itself; commit the updated `railway.env.template`. CI runs
+  `.github/workflows/railway-env-template.yml` on `main` and `railway` when those
+  paths change: it executes `python scripts/generate_railway_env_template.py --check`
+  and a small pytest module.
 - **Precedence:** Hermes reads **process environment first**, then
   `HERMES_HOME/.env` (`get_env_value()` in `hermes_cli/config.py`). Railway
   injects the process environment, so dashboard variables override the

@@ -1,0 +1,66 @@
+name: Railway env template
+
+# Keep ``railway.env.template`` in sync with OPTIONAL_ENV_VARS, _EXTRA_ENV_KEYS,
+# and the credential-shaped tables in environment-variables.md.
+
+on:
+  pull_request:
+    branches: [main, railway]
+    paths:
+      - "hermes_cli/config.py"
+      - "website/docs/reference/environment-variables.md"
+      - "scripts/generate_railway_env_template.py"
+      - "railway.env.template"
+      - "docker/entrypoint.sh"
+      - ".github/workflows/railway-env-template.yml"
+      - "tests/scripts/test_generate_railway_env_template.py"
+  push:
+    branches: [main, railway]
+    paths:
+      - "hermes_cli/config.py"
+      - "website/docs/reference/environment-variables.md"
+      - "scripts/generate_railway_env_template.py"
+      - "railway.env.template"
+      - "docker/entrypoint.sh"
+      - ".github/workflows/railway-env-template.yml"
+      - "tests/scripts/test_generate_railway_env_template.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: railway-env-template-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: generate --check + unit test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Install Hermes (editable) + pytest
+        run: |
+          uv venv .venv --python 3.11
+          source .venv/bin/activate
+          uv pip install -e "."
+          uv pip install "pytest>=8"
+
+      - name: Verify committed railway.env.template
+        run: |
+          source .venv/bin/activate
+          python scripts/generate_railway_env_template.py --check
+
+      - name: Unit test generator invariants
+        run: |
+          source .venv/bin/activate
+          python -m pytest tests/scripts/test_generate_railway_env_template.py -q --tb=short
