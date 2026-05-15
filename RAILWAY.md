@@ -8,8 +8,8 @@ small Railway-specific deployment patch.
 - Keep `main` tracking `upstream/main`.
 - Deploy Railway from the long-lived `railway` branch.
 - Merge `main` into `railway` whenever you want upstream updates.
-- Keep Railway-only changes small and obvious: `railway.json`, this note, and
-  the Dockerfile runtime patch that removes the unsupported Docker `VOLUME`.
+- Keep Railway-only changes small and obvious: `railway.json`, `railway.env.template`,
+  this note, and the Dockerfile runtime patch that removes the unsupported Docker `VOLUME`.
 
 Suggested sync:
 
@@ -48,6 +48,25 @@ Required service configuration:
 The Docker image defaults to `hermes gateway`, so the container starts as the
 always-on messaging gateway. The entrypoint bootstraps `/opt/data` with
 `config.yaml`, `.env`, sessions, logs, skills, and other Hermes state.
+
+### Environment variables (Railway dashboard)
+
+`railway.json` only configures build and deploy; Railway config-as-code does not
+embed secret values. Put API keys and tokens in **Railway → Service → Variables**.
+
+- **Checklist:** `railway.env.template` lists common Hermes variable *names*
+  (OpenRouter, Discord, Telegram, WhatsApp, Slack, voice, tools). Open it, copy
+  the lines you need into the Railway **RAW** variables editor, and set values
+  in the UI—never commit real secrets.
+- **Precedence:** Hermes reads **process environment first**, then
+  `HERMES_HOME/.env` (`get_env_value()` in `hermes_cli/config.py`). Railway
+  injects the process environment, so dashboard variables override the
+  first-boot `.env` seeded from `.env.example` under `/opt/data`.
+- **Rotations:** Update values in Railway when keys change; that triggers a new
+  deploy with the updated secrets while your image build can stay unchanged.
+
+For stable Telegram webhooks, point `TELEGRAM_WEBHOOK_URL` at your service’s
+public hostname (Railway networking) instead of churning preview URLs in git.
 
 Use Railway SSH for first-time interactive setup or verification only:
 
