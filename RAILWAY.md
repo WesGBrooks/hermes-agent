@@ -54,10 +54,13 @@ always-on messaging gateway. The entrypoint bootstraps `/opt/data` with
 `railway.json` only configures build and deploy; Railway config-as-code does not
 embed secret values. Put API keys and tokens in **Railway → Service → Variables**.
 
-- **Checklist:** `railway.env.template` lists common Hermes variable *names*
-  (OpenRouter, Discord, Telegram, WhatsApp, Slack, voice, tools). Open it, copy
-  the lines you need into the Railway **RAW** variables editor, and set values
-  in the UI—never commit real secrets.
+- **Checklist:** `railway.env.template` lists Hermes credential-style variable
+  *names* (LLM keys, messaging tokens, tool APIs, webhooks, Langfuse, bootstrap
+  JSON, etc.). It is aligned with `OPTIONAL_ENV_VARS` (`password: true`),
+  `_EXTRA_ENV_KEYS`, and `website/docs/reference/environment-variables.md`. Open
+  it, copy the lines you need into the Railway **RAW** variables editor, and set
+  values in the UI—never commit real secrets. WhatsApp pairing still lives in
+  the volume under `HERMES_HOME` (session files), not in this list.
 - **Precedence:** Hermes reads **process environment first**, then
   `HERMES_HOME/.env` (`get_env_value()` in `hermes_cli/config.py`). Railway
   injects the process environment, so dashboard variables override the
