@@ -465,4 +465,26 @@ if [ -z "${AGENT_BROWSER_EXECUTABLE_PATH:-}" ] && \
     fi
 fi
 
+# --- Optional STT bootstrap (Railway / persisted volumes) ---
+# When HERMES_ENSURE_STT_ENABLED is set, flip stt.enabled in config.yaml
+# without hand-editing over SSH. Requires [voice] in the image (Dockerfile).
+_hermes_truthy() {
+    case "$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')" in
+        1|true|yes|on) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+if _hermes_truthy "${HERMES_ENSURE_STT_ENABLED:-}" && \
+        [ -f "$INSTALL_DIR/docker/ensure_stt_enabled.py" ]; then
+    as_hermes "$INSTALL_DIR/.venv/bin/python" "$INSTALL_DIR/docker/ensure_stt_enabled.py" \
+        || echo "[stage2] Warning: ensure_stt_enabled.py failed; continuing"
+fi
+
+# --- Private context repos (Railway) ---
+# Failures here should not prevent Hermes from starting.
+if [ -x "$INSTALL_DIR/docker/sync_context_repos.sh" ]; then
+    "$INSTALL_DIR/docker/sync_context_repos.sh" || \
+        echo "[stage2] Warning: context repo sync failed; continuing"
+fi
+
 echo "[stage2] Setup complete; starting user services"
