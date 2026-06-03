@@ -1155,3 +1155,36 @@ not the specific names.
 
 Reviewers should reject new change-detector tests; authors should convert
 them into invariants before re-requesting review.
+
+## Cursor Cloud specific instructions
+
+### Toolchain (not in the VM update script)
+
+- **uv** lives in `~/.local/bin` — add `export PATH="$HOME/.local/bin:$PATH"` in your shell before `uv` commands (or source `~/.local/bin/env`).
+- **ripgrep** and **Node 20+** are preinstalled on the cloud VM (`rg` is on `PATH` as `/exec-daemon/rg`; Node via nvm).
+- Python **3.11** for the project venv: `uv python install 3.11` once if `uv venv .venv --python 3.11` complains.
+
+### Secrets and config
+
+- LLM calls need keys in `~/.hermes/.env` (not repo `.env`). Cloud VMs often inject `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, or `OPENAI_API_KEY` into the environment — copy them into `~/.hermes/.env` before `hermes chat` or gateway work.
+- Run `hermes doctor` for a fast sanity check (API connectivity section confirms keys).
+
+### Commands (see sections above for detail)
+
+| Goal | Command |
+|------|---------|
+| Activate env | `source .venv/bin/activate` |
+| Install / refresh Python deps | `uv pip install -e ".[all,dev]"` (after venv exists) |
+| Tests (CI parity) | `scripts/run_tests.sh [paths…]` — do **not** pass `-q` to the wrapper; use `scripts/run_tests.sh tests/foo.py -- --tb=long` for pytest flags |
+| Lint (sample) | `ruff check <paths>` |
+| One-shot agent smoke test | `hermes chat -q "…" --provider openrouter --model openrouter/auto` |
+| TUI | `cd ui-tui && npm ci && npm run build` then `hermes --tui` (build `hermes-ink` before `npm test`) |
+| Web dashboard | `hermes dashboard` → http://127.0.0.1:9119 (first run may build `web/` via Vite) |
+| Gateway | `hermes gateway start` (needs platform tokens in config) |
+
+### Gotchas
+
+- **No Docker-in-Docker by default** — `hermes doctor` reports local terminal backend inside cloud VMs; Docker-backed terminals need a working Docker daemon.
+- **Full test suite** is large (~17k tests); scope `scripts/run_tests.sh` to directories or files you touched.
+- **`ui-tui` `npm run type-check`** can fail on vendored `packages/hermes-ink` Node typings; `npm run build` is the practical gate before running the TUI.
+- Optional messaging deps (`python-telegram-bot`, `discord.py`) are not in `[all,dev]`; install only when working on those adapters.
