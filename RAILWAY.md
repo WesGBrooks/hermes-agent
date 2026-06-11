@@ -43,6 +43,29 @@ messaging gateway.
 - Optional: `HERMES_ENSURE_STT_ENABLED=1` to enable `stt.enabled` on the volume
 - Context repos: `GITHUB_FAMILY_CONTEXT_TOKEN`, `GITHUB_WORK_CONTEXT_TOKEN`
 
+### Web dashboard (`HERMES_DASHBOARD=1`)
+
+The supervised dashboard binds `0.0.0.0:9119` by default. On a public bind, Hermes
+**requires** a registered auth provider — it will crash-loop without one.
+
+**Recommended for Railway (username/password):** set these service variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `HERMES_DASHBOARD` | `1` to start the dashboard |
+| `HERMES_DASHBOARD_BASIC_AUTH_USERNAME` | Login username |
+| `HERMES_DASHBOARD_BASIC_AUTH_PASSWORD` | Login password |
+| `HERMES_DASHBOARD_BASIC_AUTH_SECRET` | Stable session signing key (`openssl rand -base64 32`) |
+
+Optional: `HERMES_DASHBOARD_PUBLIC_URL` if Railway’s public URL should be used for OAuth redirects (OIDC / Nous providers).
+
+**Alternatives:**
+
+- **Nous Portal OAuth:** `HERMES_DASHBOARD_OAUTH_CLIENT_ID=agent:…` (and optional `HERMES_DASHBOARD_PORTAL_URL`)
+- **Self-hosted OIDC:** `HERMES_DASHBOARD_OIDC_ISSUER` + `HERMES_DASHBOARD_OIDC_CLIENT_ID`
+- **Gateway only (no dashboard):** leave `HERMES_DASHBOARD` unset
+- **Insecure (not recommended on the public internet):** `HERMES_DASHBOARD_INSECURE=1` — exposes API keys and sessions to anyone who can reach the port
+
 Use Railway SSH for first-time setup or checks:
 
 ```bash
