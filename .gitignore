@@ -24,6 +24,7 @@ act/
 .pip-cache/
 .uv-cache/
 compose.hermes.local.yml
+.railway/
 export*
 __pycache__/model_tools.cpython-310.pyc
 __pycache__/web_tools.cpython-310.pyc
@@ -120,7 +121,10 @@ models-dev-upstream/
 
 # Local editor / agent tooling (machine-specific; keep in global config, not the repo)
 .codex/
-.cursor/
+.cursor/*
+!.cursor/environment.json
+!.cursor/scripts/
+!.cursor/scripts/**
 .gemini/
 .zed/
 .mcp.json

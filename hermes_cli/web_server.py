@@ -440,6 +440,48 @@ def should_require_auth(host: str, allow_public: bool = False) -> bool:
     return host not in _LOOPBACK_HOST_VALUES
 
 
+_BUNDLED_DASHBOARD_AUTH_KEYS = (
+    ("dashboard_auth/nous", "nous"),
+    ("dashboard_auth/basic", "basic"),
+    ("dashboard_auth/self_hosted", "self_hosted"),
+)
+
+
+def _bundled_dashboard_auth_skip_reasons() -> list[str]:
+    """Human-readable reasons bundled dashboard-auth plugins declined to register.
+
+    Plugins load as ``hermes_plugins.<category>__<name>`` (see
+    ``PluginManager._load_directory_module``), not ``plugins.<category>.<name>``.
+    Read ``LAST_SKIP_REASON`` from the loaded plugin module after
+    ``discover_plugins()`` so fail-closed bind errors name the missing env var.
+    """
+    import sys
+
+    from hermes_cli.plugins import get_plugin_manager
+
+    reasons: list[str] = []
+    pm = get_plugin_manager()
+    for key, label in _BUNDLED_DASHBOARD_AUTH_KEYS:
+        reason = ""
+        load_error = ""
+        loaded = pm._plugins.get(key)
+        if loaded is not None:
+            if loaded.error:
+                load_error = loaded.error
+            if loaded.module is not None:
+                reason = getattr(loaded.module, "LAST_SKIP_REASON", "") or ""
+        if not reason:
+            slug = key.replace("/", "__").replace("-", "_")
+            mod = sys.modules.get(f"hermes_plugins.{slug}")
+            if mod is not None:
+                reason = getattr(mod, "LAST_SKIP_REASON", "") or ""
+        if reason:
+            reasons.append(f"  • {label}: {reason}")
+        elif load_error:
+            reasons.append(f"  • {label}: plugin failed to load: {load_error}")
+    return reasons
+
+
 def _is_accepted_host(host_header: str, bound_host: str) -> bool:
     """True if the Host header targets the interface we bound to.
 
@@ -19685,16 +19727,7 @@ def start_server(
             # module-level ``LAST_SKIP_REASON`` string for this purpose;
             # without it the operator would only see "no providers" which
             # is misleading when the provider IS installed but unconfigured.
-            skip_reasons: list[str] = []
-            try:
-                from plugins.dashboard_auth import nous as _nous_plugin
-
-                if _nous_plugin.LAST_SKIP_REASON:
-                    skip_reasons.append(
-                        f"  • nous: {_nous_plugin.LAST_SKIP_REASON}"
-                    )
-            except Exception:
-                pass
+            skip_reasons = _bundled_dashboard_auth_skip_reasons()
 
             _fix_hint = (
                 "Configure an auth provider before exposing the dashboard:\n"
