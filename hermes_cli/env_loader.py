@@ -175,6 +175,15 @@ def _sanitize_loaded_credentials() -> None:
 def _load_dotenv_with_fallback(path: Path, *, override: bool) -> None:
     try:
         load_dotenv(dotenv_path=path, override=override, encoding="utf-8")
+    except PermissionError:
+        print(
+            f"  Warning: cannot read {path} (permission denied); skipping. "
+            "If running in Docker/Railway, ensure the file is owned by the "
+            "hermes user (see docker/stage2-hook.sh) or store secrets in "
+            "platform environment variables instead.",
+            file=sys.stderr,
+        )
+        return
     except UnicodeDecodeError:
         load_dotenv(dotenv_path=path, override=override, encoding="latin-1")
     # Strip non-ASCII characters from credential env vars that were just

@@ -1,0 +1,4 @@
+{
+  "name": "Hermes Agent",
+  "install": "bash .cursor/scripts/cloud-agent-install.sh"
+}

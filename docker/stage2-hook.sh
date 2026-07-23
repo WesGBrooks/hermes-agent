@@ -277,6 +277,8 @@ fi
 # chown would fail.
 if [ -d "$HERMES_HOME/profiles" ]; then
     chown_hermes_tree "$HERMES_HOME/profiles"
+    profile_count="$(find "$HERMES_HOME/profiles" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')"
+    echo "[stage2] Found ${profile_count:-0} profile(s) under $HERMES_HOME/profiles"
 fi
 
 # Always reset ownership of $HERMES_HOME/cron on every boot for the same
@@ -562,6 +564,37 @@ if [ -z "${AGENT_BROWSER_EXECUTABLE_PATH:-}" ] && \
     else
         echo "[stage2] Warning: no Chromium binary under $PLAYWRIGHT_BROWSERS_PATH; browser tool may fail"
     fi
+fi
+
+# --- Optional STT bootstrap (Railway / persisted volumes) ---
+# When HERMES_ENSURE_STT_ENABLED is set, flip stt.enabled in config.yaml
+# without hand-editing over SSH. Requires [voice] in the image (Dockerfile).
+_hermes_truthy() {
+    case "$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')" in
+        1|true|yes|on) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+if _hermes_truthy "${HERMES_ENSURE_STT_ENABLED:-}" && \
+        [ -f "$INSTALL_DIR/docker/ensure_stt_enabled.py" ]; then
+    as_hermes "$INSTALL_DIR/.venv/bin/python" "$INSTALL_DIR/docker/ensure_stt_enabled.py" \
+        || echo "[stage2] Warning: ensure_stt_enabled.py failed; continuing"
+fi
+
+# --- Private context repos (Railway) ---
+# Failures here should not prevent Hermes from starting.
+if [ -x "$INSTALL_DIR/docker/sync_context_repos.sh" ]; then
+    "$INSTALL_DIR/docker/sync_context_repos.sh" || \
+        echo "[stage2] Warning: context repo sync failed; continuing"
+fi
+
+# --- Composio CLI auth (Railway) ---
+# Rehydrate ~/.composio/user_data.json from COMPOSIO_API_KEY (+ optional org
+# context vars) so the Composio CLI works without persisting secrets in git.
+# Skipped when COMPOSIO_API_KEY is unset; only rewrites when missing or stale.
+if [ -x "$INSTALL_DIR/docker/restore_composio_auth.sh" ]; then
+    as_hermes "$INSTALL_DIR/docker/restore_composio_auth.sh" || \
+        echo "[stage2] Warning: restore_composio_auth.sh failed; continuing"
 fi
 
 echo "[stage2] Setup complete; starting user services"
